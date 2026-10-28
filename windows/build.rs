@@ -29,6 +29,8 @@ fn main() {
         let path = Path::new(&std::env::var("OUT_DIR").unwrap()).join(format!("{binary}.res"));
         std::fs::write(&path, res).expect("resources");
         println!("cargo:rustc-link-arg-bin={binary}={}", path.display());
+        // DLLs the executable imports load from System32 only, never from the folder it sits in (such as Downloads).
+        println!("cargo:rustc-link-arg-bin={binary}=/DEPENDENTLOADFLAG:0x800");
     }
 }
 

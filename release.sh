@@ -12,10 +12,13 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 version=${1:?usage: ./release.sh <version> [notes]}
+[[ "$version" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]] || { echo "The version must look like 1.2.3, not \"$version\"." >&2; exit 1; }
 notes=${2:-"Snowhush $version"}
 repository=mbezruchko/Snowhush
 profile=${NOTARY_PROFILE:-snowhush}
 sparkle_version=2.10.0
+# The release's tools run with the Sparkle signing key in reach, so their archive must be exactly the one checked in here.
+sparkle_sha256=c2bf58aa8387266ac179357b1415d6f2635f044da8be41042af32425dae6da0c
 dmgbuild_version=1.6.7
 tools=.build/sparkle-tools
 dmgbuild=.build/dmgbuild/bin/dmgbuild
@@ -33,8 +36,14 @@ if [[ ! -x "$dmgbuild" ]]; then
     .build/dmgbuild/bin/pip install -q "dmgbuild==$dmgbuild_version"
 fi
 if [[ ! -x "$tools/bin/generate_appcast" ]]; then
+    archive=$(mktemp)
+    curl -fsSL -o "$archive" "https://github.com/sparkle-project/Sparkle/releases/download/$sparkle_version/Sparkle-$sparkle_version.tar.xz"
+    if [[ "$(shasum -a 256 "$archive" | cut -d' ' -f1)" != "$sparkle_sha256" ]]; then
+        echo "Sparkle-$sparkle_version.tar.xz doesn't match its checksum; not using it." >&2
+        exit 1
+    fi
     mkdir -p "$tools"
-    curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/$sparkle_version/Sparkle-$sparkle_version.tar.xz" | tar -xJ -C "$tools"
+    tar -xJ -C "$tools" -f "$archive"
 fi
 
 # Sparkle orders updates by CFBundleVersion, so every release gets a higher build number.

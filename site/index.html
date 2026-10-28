@@ -544,17 +544,7 @@ body.snow-behind canvas.snow { z-index: 1; }
 </footer>
 
 <div class="grain" aria-hidden="true"></div>
-<script>
-  // Visitors on Windows get its download first and filled in; everyone else gets the Mac's.
-  if (/Windows/.test(navigator.userAgentData?.platform ?? navigator.userAgent)) {
-    for (const downloads of document.querySelectorAll('.downloads')) {
-      const [mac, windows] = ['mac', 'windows'].map(platform => downloads.querySelector(`[data-platform="${platform}"]`));
-      downloads.prepend(windows);
-      windows.classList.remove('secondary');
-      mac.classList.add('secondary');
-    }
-  }
-</script>
+<script src="platform.js"></script>
 <script src="snow.js"></script>
 </body>
 </html>

@@ -88,9 +88,15 @@ pub fn uninstall() {
         let _ = RegDeleteTreeW(HKEY_CURRENT_USER, SETTINGS);
         let _ = RegDeleteKeyValueW(HKEY_CURRENT_USER, RUN, NAME);
     }
-    if let Some(folder) = folder.filter(|folder| folder.ends_with("Snowhush")) {
+    // Only the folder Snowhush installs to, never wherever the registry value happens to point.
+    let expected = known_folder(&FOLDERID_UserProgramFiles).map(|programs| programs.join("Snowhush"));
+    if let (Some(folder), Some(expected)) = (folder, expected)
+        && folder.eq_ignore_ascii_case(&expected.display().to_string())
+    {
+        // The path reaches cmd through the environment: expanded once, inside quotes, it can't become a command.
         let _ = std::process::Command::new("cmd.exe")
-            .raw_arg(format!("/c ping 127.0.0.1 -n 3 >nul & rmdir /s /q \"{folder}\""))
+            .raw_arg("/c ping 127.0.0.1 -n 3 >nul & rmdir /s /q \"%SNOWHUSH_FOLDER%\"")
+            .env("SNOWHUSH_FOLDER", &expected)
             .creation_flags(CREATE_NO_WINDOW)
             .spawn();
     }
